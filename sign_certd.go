@@ -264,6 +264,16 @@ func (h *certRequestHandler) createSigningRequest(rw http.ResponseWriter, req *h
 
 	requesterFp := ssh_ca_util.MakeFingerprint(cert.SignatureKey.Marshal())
 
+	if len(cert.ValidPrincipals) > 1 {
+		http.Error(rw, "You may only specify one Principal.", http.StatusBadRequest)
+		return
+	}
+
+	if config.AuthorizedUsers[requesterFp] != cert.ValidPrincipals[0] {
+		http.Error(rw, "KeyID and Principal must match.", http.StatusBadRequest)
+		return
+	}
+
 	signed, err := h.saveSigningRequest(config, environment, reason, requestIDStr, nextSerial, cert)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("Request not made: %v", err), http.StatusBadRequest)
